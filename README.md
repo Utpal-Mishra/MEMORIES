@@ -109,3 +109,12 @@ The client reads one consistent album snapshot through `read_album`. The `save_v
 The map is a bundled regional overview with zoom controls and a complete place list. Places outside its extent remain available in the list. It makes no runtime tile or geocoding requests. The map source and projection are documented in [the geometry notes](src/data/README.md).
 
 Phase 2 requires a description for each visit. Media uploads, photo frames and weather scenes belong to Phase 3. The existing media bucket stays closed to clients.
+
+
+## Web deployment
+
+The web app is published at [For Her](https://utpal-mishra.github.io/MEMORIES/). Pushes to main run the verification workflow, build the Expo web export and deploy it through GitHub Pages. Pull requests run checks without publishing.
+
+Repository Actions variables supply `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` during the build. These are public client settings. The database authorization policies protect album contents. The build uses the `/MEMORIES` asset prefix for the repository site.
+
+For another hosting path, update `expo.experiments.baseUrl` in app.json before exporting. Live email delivery and two-device pairing remain acceptance checks for private use.
