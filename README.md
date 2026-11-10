@@ -92,3 +92,7 @@ npm run build
 ```
 
 The tests execute the production migration in embedded Postgres with minimal Supabase schemas. They verify invitation expiry, rotation and replay protection, the two-user album gate, and storage isolation. Hosted Auth and SMTP require a separate two-inbox test.
+
+## Project logs
+
+The [structured audit trail](docs/logs/README.md) defines 13 log categories, shared change IDs, entry templates and historical coverage tracking. Detailed private records are maintained in the owner's private audit register. Review the recording and visibility rules before adding entries.
