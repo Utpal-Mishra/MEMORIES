@@ -1,0 +1,18 @@
+project_id = "for-her-memories"
+
+[auth]
+enable_signup = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = true
+otp_length = 6
+otp_expiry = 600
+
+[auth.email.template.magic_link]
+subject = "Your For Her sign-in code"
+content_path = "./supabase/templates/sign_in_code.html"
+
+[auth.email.template.invite]
+subject = "Set up your For Her sign-in"
+content_path = "./supabase/templates/setup_code.html"

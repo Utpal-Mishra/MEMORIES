@@ -2,7 +2,7 @@
 
 For Her is a private memory album for one couple. It opens on a map of Ireland, where saved places lead back to the visits, photos and short notes that make each place memorable.
 
-**Status** · Product and architecture planning. This repository currently contains the project documentation.
+**Status** · Phase 1 foundation is implemented in this repository. Hosted Supabase provisioning and email delivery verification are pending.
 
 ## Product scope
 
@@ -30,7 +30,7 @@ flowchart LR
 
 The mobile-first client owns navigation, map interaction and media selection. The backend owns pairing, authorization and shared album records. Map search, weather and date ideas use separate integrations so an unavailable provider does not prevent the couple from opening existing memories.
 
-The initial stack candidates are Expo and React Native for the client and Supabase Auth, Postgres and private Storage for the backend. Validate those choices in the foundation milestone alongside the map provider, launch platform and allowed media formats. Open-Meteo is the proposed weather provider.
+Phase 1 uses Expo and React Native for the client and Supabase Auth, Postgres and a closed private Storage bucket for the backend. The map provider, launch platform and allowed media formats remain open. Open-Meteo is the proposed weather provider.
 
 ### Data model
 
@@ -56,9 +56,39 @@ The initial stack candidates are Expo and React Native for the client and Supaba
 
 | Milestone | Deliverable | Done when |
 | --- | --- | --- |
-| 1. Foundation | App shell, backend, email verification and partner pairing | Two intended identities can unlock one album. Pending and unrelated identities cannot read records or media. |
+| 1. Foundation | App shell, backend, email verification and partner pairing | Code and database checks are complete. Verify email delivery and pairing on a configured Supabase project before first use. |
 | 2. Ireland and visits | Ireland home map, place list and visit editor | The couple can add a place, log multiple dated visits to it and open each visit from the same pin. A note-only visit can be saved and reopened. |
 | 3. Media and design | Private uploads, Polaroid gallery, photo-first navigation and weather scenes | A media-only visit opens from the map and gallery. Upload retries, unavailable weather and a failed map load each have a usable fallback. |
 | 4. Ideas and private release | Dublin date ideas, **We went here** and testing on both partners’ devices | An idea can become a visit. Pairing, account recovery, access revocation, media deletion and backup recovery have been tested before real memories are added. |
 
 The first release covers the shared album, Ireland home map, visits, gallery, weather and a small set of sourced Dublin date ideas. Wider suggestion coverage and offline maps can follow after the private release.
+
+
+## Run Phase 1
+
+Use Node.js 22 or newer. Copy `.env.example` to `.env.local` and set the dedicated project URL and publishable key. Only the publishable key belongs in the app environment.
+
+```sh
+npm ci
+npm run web
+```
+
+Use `npm start` for the Expo development server. Sessions are held in memory, so reopening the app or refreshing the web page requires a new sign-in code.
+
+### Provision one couple
+
+1. Apply the [foundation migration](supabase/migrations/20261110120000_album_foundation.sql) to a dedicated Supabase project. For hosted setup, use the SQL editor or the Supabase CLI.
+2. Enable the email provider and email confirmation. Disable public signup. Set the email code length to six digits and the expiry to ten minutes. Use the supplied [Invite user](supabase/templates/setup_code.html) and [Magic link or OTP](supabase/templates/sign_in_code.html) templates. Configure [custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) for delivery to the two inboxes. The repository's [local configuration](supabase/config.toml) specifies these auth settings for a local Supabase stack.
+3. In the Auth admin interface, send an Auth invitation to each intended email address. Run [pair configuration](supabase/configure_pair.sql) privately with those same normalized addresses to bind the album to the two Auth user IDs. Keep the real addresses out of the repository.
+4. Each partner selects **Use first-time setup code** and verifies their email with the six-digit code from Supabase. The owner creates and privately shares a separate album invitation code. The partner enters that code and accepts. The owner selects **Check again** to open the album. On subsequent sessions, use **Send sign-in code**.
+5. Before adding real memories, verify both emails arrive, both devices can unlock the same album, and a third identity cannot open it. The media bucket is closed to every client in Phase 1.
+
+The sign-in screen uses the same submission message for known and unknown addresses. Treat direct Supabase OTP endpoint behavior as a separate hosted security check, since the provider can return distinct responses to scripted requests. See the [Supabase Auth issue](https://github.com/supabase/auth/issues/1547).
+
+```sh
+npm run typecheck
+npm test
+npm run build
+```
+
+The tests execute the production migration in embedded Postgres with minimal Supabase schemas. They verify invitation expiry, rotation and replay protection, the two-user album gate, and storage isolation. Hosted Auth and SMTP require a separate two-inbox test.

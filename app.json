@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "For Her",
+    "slug": "for-her-memories",
+    "version": "0.1.0",
+    "userInterfaceStyle": "light",
+    "web": { "bundler": "metro" }
+  }
+}

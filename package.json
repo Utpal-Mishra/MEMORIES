@@ -1,0 +1,31 @@
+{
+  "name": "for-her-memories",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "web": "expo start --web",
+    "build": "expo export --platform web",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.100.0",
+    "expo": "~55.0.32",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-native": "0.83.10",
+    "react-native-url-polyfill": "^3.0.0",
+    "react-native-web": "~0.21.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@types/node": "^22.0.0",
+    "@types/react": "~19.2.0",
+    "typescript": "~5.9.2"
+  }
+}
