@@ -19,6 +19,7 @@ test('pairing, album RLS and media isolation on Postgres', async (t) => {
     create role anon;
     create role authenticated;
     create schema auth;
+    grant usage on schema auth to anon, authenticated;
     create table auth.users (id uuid primary key, email text, email_confirmed_at timestamptz);
     create function auth.uid() returns uuid language sql stable as
       $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
@@ -36,6 +37,7 @@ test('pairing, album RLS and media isolation on Postgres', async (t) => {
       ('${outsider}', 'outsider@example.test', now());
   `);
   await db.exec(await readFile(migration, 'utf8'));
+  await db.exec(await readFile(new URL('../supabase/migrations/20261110220000_places_and_visits.sql', import.meta.url), 'utf8'));
   await db.exec(await readFile(provision, 'utf8'));
   await db.exec("insert into storage.objects values ('album-media', 'synthetic.jpg'), ('other', 'allowed.jpg')");
 
@@ -124,10 +126,48 @@ test('pairing, album RLS and media isolation on Postgres', async (t) => {
     await assert.rejects(call(owner, "insert into storage.objects values ('album-media', 'upload.jpg')"), /row-level security/);
   });
 
+  await t.test('paired users save and reopen dated visits with retries and place reuse', async () => {
+    const album = (await db.query('select id from public.albums')).rows[0].id;
+    const first = '10000000-0000-4000-8000-000000000001';
+    const second = '10000000-0000-4000-8000-000000000002';
+    const third = '10000000-0000-4000-8000-000000000003';
+    const save = (id, request, name, lat, existing = null, brief = 'A synthetic visit.') => call(id,
+      'select public.save_visit($1,$2,$3,$4,$5,-6.26,$6,$7,$8) as value',
+      [request, album, existing, name, lat, '2026-10-25', brief, 'days_out']);
+
+    await assert.rejects(call(null, 'select public.read_album() as value'), /permission denied/);
+    await assert.rejects(save(outsider, first, 'Sample place', 53.35), /Album access required/);
+    assert.equal(await save(owner, first, 'Sample place', 53.35), first);
+    assert.equal(await save(owner, first, 'Sample place', 53.35), first);
+    assert.equal((await db.query('select count(*)::int as n from public.visits')).rows[0].n, 1);
+    assert.equal(await save(partner, second, 'SAMPLE PLACE', 53.3500001), second);
+    assert.equal((await db.query('select count(*)::int as n from public.places')).rows[0].n, 1);
+    const place = (await db.query('select id from public.places')).rows[0].id;
+    assert.equal(await save(owner, third, null, null, place), third);
+    const snapshot = await call(partner, 'select public.read_album() as value');
+    assert.equal(snapshot.places.length, 1);
+    assert.equal(snapshot.visits.length, 3);
+    assert.equal(snapshot.visits[0].place_id, place);
+    assert.equal(snapshot.visits[0].brief, 'A synthetic visit.');
+    assert.equal(await call(outsider, 'select public.read_album() as value'), null);
+    assert.equal(await call(outsider, 'select count(*)::int as value from public.places'), 0);
+    assert.equal(await call(outsider, 'select count(*)::int as value from public.visits'), 0);
+    await assert.rejects(save(partner, first, 'Sample place', 53.35), /Request ID already used/);
+
+    await assert.rejects(save(owner, '10000000-0000-4000-8000-000000000004', 'Failed place', 51.2, null, ''), /check constraint/);
+    assert.equal((await db.query('select count(*)::int as n from public.places')).rows[0].n, 1);
+    await assert.rejects(save(owner, '10000000-0000-4000-8000-000000000005', 'Bad coordinates', 91), /check constraint/);
+    await assert.rejects(call(owner,
+      "insert into public.visits(id,album_id,place_id,visited_on,brief,category,created_by) values (gen_random_uuid(),$1,$2,'2026-10-25','Synthetic','days_out',$3)",
+      [album, place, outsider]), /row-level security/);
+  });
+
   await t.test('a changed identity locks the album again', async () => {
     await db.query("update auth.users set email = 'different@example.test' where id = $1", [partner]);
     assert.equal(await albumCount(owner), 0);
     assert.equal(await albumCount(partner), 0);
     assert.equal(await status(owner), 'unavailable');
+    assert.equal(await call(owner, 'select public.read_album() as value'), null);
+    assert.equal(await call(partner, 'select count(*)::int as value from public.visits'), 0);
   });
 });

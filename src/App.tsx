@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 
 import { supabase, trackNativeSession } from './supabase';
+import { AlbumWorkspace } from './AlbumWorkspace';
 
 type PairingState =
   | 'owner_ready' | 'owner_waiting' | 'partner_waiting' | 'partner_ready'
@@ -48,7 +49,7 @@ export function App() {
           <Text style={styles.brandName}>For Her</Text>
           <View style={styles.brandMark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
         </View>
-        <View style={styles.card}>
+        <View>
           {supabase ? <Account client={supabase} /> : (
             <>
               <Heading>Album setup required</Heading>
@@ -79,7 +80,7 @@ function Account({ client }: { client: SupabaseClient }) {
 
   return session
     ? <Pairing key={session.user.id} client={client} />
-    : <SignIn client={client} />;
+    : <View style={styles.card}><SignIn client={client} /></View>;
 }
 
 function SignIn({ client }: { client: SupabaseClient }) {
@@ -121,8 +122,8 @@ function SignIn({ client }: { client: SupabaseClient }) {
       setError('Enter the email address set up for your album.');
       return;
     }
-    if (!/^\d{6}$/.test(code)) {
-      setError('Enter the six-digit code from your email.');
+    if (!/^(?:\d{6}|\d{8})$/.test(code)) {
+      setError('Enter the six- or eight-digit code from your email.');
       return;
     }
 
@@ -151,8 +152,8 @@ function SignIn({ client }: { client: SupabaseClient }) {
     <>
       <Heading>{setup ? 'Set up your sign-in' : sentTo ? 'Check your email' : 'Open your album'}</Heading>
       <Text style={styles.detail}>
-        {setup ? 'Use the six-digit setup code in the email that invited you to For Her.'
-          : sentTo ? 'If that address is set up for the album, you’ll receive a six-digit code.'
+        {setup ? 'Use the setup code in the email that invited you to For Her.'
+          : sentTo ? 'If that address is set up for the album, you’ll receive a one-time code.'
           : 'Enter your email to get a one-time sign-in code.'}
       </Text>
       {!sentTo && (
@@ -170,7 +171,7 @@ function SignIn({ client }: { client: SupabaseClient }) {
           <Text style={styles.label}>{setup ? 'Email setup code' : 'Email sign-in code'}</Text>
           <TextInput
             accessibilityLabel={setup ? 'Email setup code' : 'Email sign-in code'}
-            autoComplete="one-time-code" editable={!busy} keyboardType="number-pad" maxLength={6}
+            autoComplete="one-time-code" editable={!busy} keyboardType="number-pad" maxLength={8}
             onChangeText={setCode} style={styles.input} value={code}
             onSubmitEditing={() => { if (!busy) void verifyCode(); }}
           />
@@ -267,8 +268,12 @@ function Pairing({ client }: { client: SupabaseClient }) {
   }
 
   const copy = state ? pairingCopy[state] : undefined;
+  if (state === 'active') return <AlbumWorkspace client={client} onSignOut={async () => {
+    const { error: signOutError } = await client.auth.signOut({ scope: 'local' });
+    if (signOutError) throw signOutError;
+  }} />;
   return (
-    <>
+    <View style={styles.card}>
       <Heading>{copy?.title ?? 'Checking your album'}</Heading>
       {copy && <Text style={styles.detail}>{copy.detail}</Text>}
       {state === 'owner_ready' && <Action disabled={busy} onPress={issue}>Create invitation code</Action>}
@@ -293,13 +298,13 @@ function Pairing({ client }: { client: SupabaseClient }) {
         </>
       )}
       {!state && busy && <ActivityIndicator accessibilityLabel="Checking album status" color="#285342" />}
-      {state !== 'active' && <Action disabled={busy} onPress={() => run(refresh)} secondary>Check again</Action>}
+      <Action disabled={busy} onPress={() => run(refresh)} secondary>Check again</Action>
       <Action disabled={busy} onPress={() => run(async () => {
         const { error: signOutError } = await client.auth.signOut({ scope: 'local' });
         if (signOutError) throw signOutError;
       })} secondary>Sign out</Action>
       <ErrorMessage message={error} />
-    </>
+    </View>
   );
 }
 
@@ -330,7 +335,7 @@ const styles = StyleSheet.create({
     flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#e9f0e7',
     paddingHorizontal: 20, paddingVertical: 52,
   },
-  frame: { width: '100%', maxWidth: 450, gap: 18 },
+  frame: { width: '100%', maxWidth: 1100, gap: 18 },
   brand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
   brandName: { fontSize: 23, fontWeight: '700', letterSpacing: -0.8, color: '#223b2e' },
   brandMark: {
@@ -338,7 +343,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#6d957c', transform: [{ rotate: '-22deg' }],
   },
   card: {
-    backgroundColor: '#fcfdf9', borderColor: '#d2ded1', borderWidth: 1,
+    maxWidth: 450, width: '100%', alignSelf: 'center', backgroundColor: '#fcfdf9', borderColor: '#d2ded1', borderWidth: 1,
     borderRadius: 26, padding: 25, gap: 11,
   },
   title: { color: '#173227', fontSize: 31, lineHeight: 35, fontWeight: '700', letterSpacing: -1.15 },

@@ -16,9 +16,11 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.100.0",
     "expo": "~55.0.32",
+    "expo-crypto": "~55.0.19",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.10",
+    "react-native-svg": "15.15.3",
     "react-native-url-polyfill": "^3.0.0",
     "react-native-web": "~0.21.0"
   },
