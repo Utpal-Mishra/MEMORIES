@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import geography from './data/ireland.json';
@@ -64,10 +64,24 @@ export function PlaceMap({ places, selectedId, onSelect, onPick, draft }: {
         })()}
         {onPick && <Pressable accessibilityRole="button" accessibilityLabel="Choose place location on map"
           style={StyleSheet.absoluteFill}
-          onPress={(event) => onPick(
-            Number((55.8 - (top + event.nativeEvent.locationY / size.height * height) / 100).toFixed(5)),
-            Number(((left + event.nativeEvent.locationX / size.width * width) / 64 - 11.3).toFixed(5)),
-          )} />}
+          onPress={(event) => {
+            let { locationX, locationY } = event.nativeEvent;
+            if (Platform.OS === 'web') {
+              const pointer = event.nativeEvent as unknown as { clientX: number; clientY: number; detail: number };
+              if (pointer.detail === 0) return;
+              const target = event.currentTarget as unknown as {
+                getBoundingClientRect: () => { left: number; top: number };
+              };
+              const bounds = target.getBoundingClientRect();
+              locationX = pointer.clientX - bounds.left;
+              locationY = pointer.clientY - bounds.top;
+            }
+            if (!Number.isFinite(locationX) || !Number.isFinite(locationY)) return;
+            onPick(
+              Number((55.8 - (top + locationY / size.height * height) / 100).toFixed(5)),
+              Number(((left + locationX / size.width * width) / 64 - 11.3).toFixed(5)),
+            );
+          }} />}
       </View>
       <View style={styles.tools}>
         <Text style={styles.attribution}>Map data · Natural Earth</Text>
