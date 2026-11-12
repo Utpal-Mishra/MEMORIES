@@ -16,7 +16,7 @@ export type Visit = {
   category: string;
   created_at: string;
 };
-export type AlbumData = { albumId: string; places: Place[]; visits: Visit[] };
+export type AlbumData = { albumId: string; places: Place[]; visits: Visit[]; photoPaths?: string[] };
 export type VisitInput = {
   request_id: string;
   target_album: string;
@@ -27,6 +27,7 @@ export type VisitInput = {
   visit_date: string;
   visit_brief: string;
   visit_category: string;
+  allow_empty_brief?: boolean;
 };
 
 export async function loadAlbum(client: SupabaseClient, signal?: AbortSignal): Promise<AlbumData> {

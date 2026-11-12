@@ -17,6 +17,8 @@
     "@supabase/supabase-js": "^2.100.0",
     "expo": "~55.0.32",
     "expo-crypto": "~55.0.19",
+    "expo-file-system": "~55.0.26",
+    "expo-image-picker": "~55.0.24",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.10",

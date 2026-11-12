@@ -24,11 +24,11 @@ test('pairing, album RLS and media isolation on Postgres', async (t) => {
     create function auth.uid() returns uuid language sql stable as
       $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
     create schema storage;
-    create table storage.buckets (id text primary key, name text, public boolean);
-    create table storage.objects (bucket_id text, name text);
+    create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
+    create table storage.objects (bucket_id text, name text, created_at timestamptz default now());
     alter table storage.objects enable row level security;
     grant usage on schema storage to anon, authenticated;
-    grant select, insert on storage.objects to anon, authenticated;
+    grant select, insert, update, delete on storage.objects to anon, authenticated;
     create policy "fixture broad access" on storage.objects for all to public
       using (true) with check (true);
     insert into auth.users (id, email, email_confirmed_at) values
@@ -162,6 +162,46 @@ test('pairing, album RLS and media isolation on Postgres', async (t) => {
       [album, place, outsider]), /row-level security/);
   });
 
+  await t.test('Phase 3 permits only paired members and only photos attached to an existing visit', async () => {
+    await db.exec(await readFile(new URL('../supabase/migrations/20261112010000_visit_photos.sql', import.meta.url), 'utf8'));
+    const bucket = (await db.query("select * from storage.buckets where id = 'album-media'")).rows[0];
+    assert.equal(bucket.public, false);
+    assert.equal(Number(bucket.file_size_limit), 10 * 1024 * 1024);
+    assert.deepEqual(bucket.allowed_mime_types, ['image/jpeg', 'image/png', 'image/webp']);
+
+    const [visit] = (await db.query('select id, album_id, place_id from public.visits order by id')).rows;
+    const album = visit.album_id;
+    const photo = '20000000-0000-4000-8000-000000000001';
+    const missing = '20000000-0000-4000-8000-000000000002';
+    const path = `${album}/${visit.id}/${photo}.jpg`;
+    const upload = (actor, name) => call(actor,
+      "insert into storage.objects (bucket_id, name) values ('album-media', $1) returning name as value", [name]);
+    await assert.rejects(upload(null, path), /row-level security/);
+    await assert.rejects(upload(outsider, path), /row-level security/);
+    await assert.rejects(upload(owner, `${album}/${missing}/${photo}.jpg`), /row-level security/);
+    await assert.rejects(upload(owner, `${missing}/${visit.id}/${photo}.jpg`), /row-level security/);
+    await assert.rejects(upload(owner, `${album}/${visit.id}/${photo}.svg`), /row-level security/);
+    assert.equal(await upload(owner, path), path);
+    assert.equal(await mediaCount(outsider), 0);
+    assert.equal(await mediaCount(null), 0);
+    assert.equal(await mediaCount(partner), 1);
+    const snapshot = () => call(partner, 'select public.read_album() as value');
+    assert.deepEqual((await snapshot()).photoPaths, [path]);
+    assert.equal(await call(partner, "update storage.objects set name = 'different' where name = $1 returning name as value", [path]), undefined);
+    assert.equal(await call(outsider, 'delete from storage.objects where name = $1 returning name as value', [path]), undefined);
+    assert.equal(await call(partner, 'delete from storage.objects where name = $1 returning name as value', [path]), path);
+    assert.deepEqual((await snapshot()).photoPaths, []);
+
+    const savePhotoVisit = (allow) => call(owner,
+      "select public.save_visit($1,$2,$3,null,null,null,'2026-10-25','', 'days_out', $4) as value",
+      [missing, album, visit.place_id, allow]);
+    await assert.rejects(savePhotoVisit(false), /Visit description required/);
+    assert.equal(await savePhotoVisit(true), missing);
+    assert.equal(await savePhotoVisit(true), missing);
+    assert.equal((await snapshot()).visits.find((item) => item.id === missing).brief, '');
+    assert.equal(await upload(owner, `${album}/${missing}/${photo}.webp`), `${album}/${missing}/${photo}.webp`);
+  });
+
   await t.test('a changed identity locks the album again', async () => {
     await db.query("update auth.users set email = 'different@example.test' where id = $1", [partner]);
     assert.equal(await albumCount(owner), 0);
@@ -169,5 +209,7 @@ test('pairing, album RLS and media isolation on Postgres', async (t) => {
     assert.equal(await status(owner), 'unavailable');
     assert.equal(await call(owner, 'select public.read_album() as value'), null);
     assert.equal(await call(partner, 'select count(*)::int as value from public.visits'), 0);
+    assert.equal(await mediaCount(owner), 0);
+    assert.equal(await mediaCount(partner), 0);
   });
 });

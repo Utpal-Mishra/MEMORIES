@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { Component, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
@@ -15,13 +16,37 @@ const cities = [
   { name: 'Belfast', latitude: 54.6, longitude: -5.93 },
 ];
 
-export function PlaceMap({ places, selectedId, onSelect, onPick, draft }: {
+type MapProps = {
   places: Place[];
   selectedId?: string;
   onSelect: (id: string) => void;
   onPick?: (latitude: number, longitude: number) => void;
   draft?: { latitude: number; longitude: number };
-}) {
+};
+
+class MapFallback extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return <View style={styles.tools}>
+      <Text style={styles.attribution}>Map unavailable. Use the place list or enter coordinates to continue.</Text>
+      <Pressable accessibilityRole="button" onPress={() => this.setState({ failed: false })} style={styles.tool}>
+        <Text>Retry map</Text>
+      </Pressable>
+    </View>;
+  }
+}
+
+export function PlaceMap(props: MapProps) {
+  return <MapFallback><IrelandMap {...props} /></MapFallback>;
+}
+
+function IrelandMap({ places, selectedId, onSelect, onPick, draft }: MapProps) {
   const [zoom, setZoom] = useState(1);
   const [size, setSize] = useState({ width: 400, height: 480 });
   const selected = places.find((place) => place.id === selectedId);
