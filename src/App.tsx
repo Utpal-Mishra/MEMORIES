@@ -386,7 +386,11 @@ const styles = StyleSheet.create({
   displayFont: { fontFamily: 'BodoniDisplay' },
   readingFont: { fontFamily: 'BodoniText', fontSize: 16 },
   strongFont: { fontFamily: 'BodoniStrong', fontWeight: 'normal' },
-  signInCard: { maxWidth: 430, boxShadow: '0 16px 54px rgba(11, 32, 23, 0.32)' },
+  signInCard: {
+    maxWidth: 430,
+    backgroundColor: 'rgba(252, 253, 249, 0.7)',
+    boxShadow: '0 16px 54px rgba(11, 32, 23, 0.32)',
+  },
   wallpaperControl: {
     minHeight: 44, justifyContent: 'center', borderRadius: 22, paddingHorizontal: 16,
     backgroundColor: 'rgba(15, 36, 27, 0.76)', borderColor: 'rgba(255, 250, 240, 0.42)', borderWidth: 1,
