@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   strongFont: { fontFamily: 'BodoniStrong', fontWeight: 'normal' },
   signInCard: {
     maxWidth: 430,
-    backgroundColor: 'rgba(252, 253, 249, 0.7)',
+    backgroundColor: 'rgba(252, 253, 249, 0.5)',
     boxShadow: '0 16px 54px rgba(11, 32, 23, 0.32)',
   },
   wallpaperControl: {
