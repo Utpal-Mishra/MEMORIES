@@ -69,7 +69,7 @@ export function App() {
     return <SignInPage>
       <View style={[styles.card, styles.signInCard]}>
         {!supabase ? <>
-          <Heading level={2}>Album setup required</Heading>
+          <Heading level={2} onWallpaper>Album setup required</Heading>
           <SignInDetail>Connect the app to its Supabase project to enable sign-in.</SignInDetail>
         </> : session === undefined
           ? <ActivityIndicator accessibilityLabel="Loading album" color="#285342" />
@@ -183,7 +183,7 @@ function SignIn({ client }: { client: SupabaseClient }) {
 
   return (
     <>
-      <Heading level={2}>{setup ? 'Set up your sign-in' : sentTo ? 'Check your email' : 'Open your album'}</Heading>
+      <Heading level={2} onWallpaper>{setup ? 'Set up your sign-in' : sentTo ? 'Check your email' : 'Open your album'}</Heading>
       <SignInDetail>
         {setup ? 'Use the setup code in the email that invited you to For Her.'
           : sentTo ? 'If that address is set up for the album, you’ll receive a one-time code.'
@@ -191,7 +191,7 @@ function SignIn({ client }: { client: SupabaseClient }) {
       </SignInDetail>
       {!sentTo && (
         <>
-          <Text style={[styles.label, bodoni && styles.strongFont]}>Email address</Text>
+          <Text style={[styles.label, styles.signInText, bodoni && styles.strongFont]}>Email address</Text>
           <TextInput
             accessibilityLabel="Email address" autoCapitalize="none" autoComplete="email"
             autoCorrect={false} editable={!busy} keyboardType="email-address" onChangeText={setEmail}
@@ -201,7 +201,7 @@ function SignIn({ client }: { client: SupabaseClient }) {
       )}
       {(setup || sentTo) ? (
         <>
-          <Text style={[styles.label, bodoni && styles.strongFont]}>{setup ? 'Email setup code' : 'Email sign-in code'}</Text>
+          <Text style={[styles.label, styles.signInText, bodoni && styles.strongFont]}>{setup ? 'Email setup code' : 'Email sign-in code'}</Text>
           <TextInput
             accessibilityLabel={setup ? 'Email setup code' : 'Email sign-in code'}
             autoComplete="one-time-code" editable={!busy} keyboardType="number-pad" maxLength={8}
@@ -341,14 +341,15 @@ function Pairing({ client }: { client: SupabaseClient }) {
   );
 }
 
-function Heading({ children, level = 1 }: PropsWithChildren<{ level?: 1 | 2 }>) {
+function Heading({ children, level = 1, onWallpaper }: PropsWithChildren<{ level?: 1 | 2; onWallpaper?: boolean }>) {
   const bodoni = useContext(SignInTypography);
-  return <Text accessibilityRole="header" aria-level={level} style={[styles.title, bodoni && styles.strongFont]}>{children}</Text>;
+  return <Text accessibilityRole="header" aria-level={level}
+    style={[styles.title, onWallpaper && styles.signInText, bodoni && styles.strongFont]}>{children}</Text>;
 }
 
 function SignInDetail({ children }: PropsWithChildren) {
   const bodoni = useContext(SignInTypography);
-  return <Text style={[styles.detail, bodoni && styles.readingFont]}>{children}</Text>;
+  return <Text style={[styles.detail, styles.signInText, bodoni && styles.readingFont]}>{children}</Text>;
 }
 
 function Action({ children, disabled, onPress, secondary }: PropsWithChildren<{
@@ -386,9 +387,13 @@ const styles = StyleSheet.create({
   displayFont: { fontFamily: 'BodoniDisplay' },
   readingFont: { fontFamily: 'BodoniText', fontSize: 16 },
   strongFont: { fontFamily: 'BodoniStrong', fontWeight: 'normal' },
+  signInText: {
+    color: '#fff', textShadowColor: '#10291f',
+    textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
+  },
   signInCard: {
     maxWidth: 430,
-    backgroundColor: 'rgba(252, 253, 249, 0.25)',
+    backgroundColor: 'rgba(252, 253, 249, 0.1)',
     boxShadow: '0 16px 54px rgba(11, 32, 23, 0.32)',
   },
   wallpaperControl: {
