@@ -303,7 +303,7 @@ function VisitEditor({ client, albumId, place, idea, places, onSaved, onCancel }
         disabled={locked} selected={category === item.value} onPress={() => setCategory(item.value)}>{item.label}</Button>)}</View>
       <Field label="Visit description" value={brief} onChange={setBrief} disabled={locked} multiline maxLength={5000} />
       {photo && <Image source={{ uri: photo.uri }} accessibilityLabel="Selected photo"
-        style={{ height: 160, width: '100%', borderRadius: 9 }} resizeMode="cover" />}
+        style={styles.photoPreview} resizeMode="cover" />}
       <View style={styles.tabs}>
         <Button secondary disabled={locked || choosing} onPress={pickPhoto}>
           {choosing ? 'Opening photos…' : photo ? 'Choose a different photo' : 'Choose photo'}
@@ -362,6 +362,7 @@ const styles = StyleSheet.create({
   editor: { maxWidth: 580, width: '100%', alignSelf: 'center', gap: 15, backgroundColor: '#fcfdf9', padding: 22, borderRadius: 22 },
   label: { color: '#284738', fontSize: 14, fontWeight: '600' },
   input: { borderWidth: 1, borderColor: '#92a99a', borderRadius: 10, minHeight: 46, padding: 12, fontSize: 16, color: '#173227', backgroundColor: '#fff' },
+  photoPreview: { height: 160, width: '100%', borderRadius: 9, borderWidth: 2, borderColor: '#000' },
   coordinateRow: { flexDirection: 'row', gap: 12 },
   error: { color: '#8b302c', fontSize: 14, lineHeight: 21 },
   button: { minHeight: 43, justifyContent: 'center', alignItems: 'center', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#285342' },

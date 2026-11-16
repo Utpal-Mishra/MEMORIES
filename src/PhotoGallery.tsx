@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   card: { flexGrow: 1, flexBasis: 195, maxWidth: 275 },
   paper: { backgroundColor: '#fffdf6', borderColor: '#d6dfcc', borderWidth: 1, borderRadius: 4, padding: 9, paddingBottom: 14, gap: 7,
     shadowColor: '#294b37', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-  photo: { width: '100%', aspectRatio: 1.18, backgroundColor: '#dae6d6', borderRadius: 2 },
+  photo: { width: '100%', aspectRatio: 1.18, backgroundColor: '#dae6d6', borderRadius: 2, borderWidth: 2, borderColor: '#000' },
   placeholder: { alignItems: 'center', justifyContent: 'center' },
   title: { color: '#173227', fontSize: 17, fontWeight: '600' },
   date: { color: '#486252', fontSize: 13 },

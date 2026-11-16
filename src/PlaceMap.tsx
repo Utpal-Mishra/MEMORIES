@@ -121,7 +121,7 @@ function IrelandMap({ places, selectedId, onSelect, onPick, draft }: MapProps) {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { borderRadius: 20, overflow: 'hidden', backgroundColor: '#e4efed', borderWidth: 1, borderColor: '#d4dfd5' },
+  wrapper: { borderRadius: 20, overflow: 'hidden', backgroundColor: '#e4efed', borderWidth: 2, borderColor: '#000' },
   map: { width: '100%', aspectRatio: 400 / 480, overflow: 'hidden' },
   city: { position: 'absolute', fontSize: 11, color: '#526958', marginLeft: 7, marginTop: 5 },
   pinTarget: { position: 'absolute', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
