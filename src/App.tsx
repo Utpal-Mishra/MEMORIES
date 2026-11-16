@@ -1,23 +1,14 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useFonts } from 'expo-font';
+import { useEffect, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import {
-  ActivityIndicator, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, useWindowDimensions, View,
+  ActivityIndicator, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
 
 import { supabase, trackNativeSession } from './supabase';
 import { AlbumWorkspace } from './AlbumWorkspace';
 import { SignInWallpaper, useWallpaperMotion } from './SignInWallpaper';
-
-const signInFonts = {
-  BodoniDisplay: require('../assets/fonts/BodoniModa-Display.ttf') as number,
-  BodoniText: require('../assets/fonts/BodoniModa-Text.ttf') as number,
-  BodoniStrong: require('../assets/fonts/BodoniModa-Strong.ttf') as number,
-};
-
-const SignInTypography = createContext(false);
 
 type PairingState =
   | 'owner_ready' | 'owner_waiting' | 'partner_waiting' | 'partner_ready'
@@ -70,7 +61,7 @@ export function App() {
       <View style={[styles.card, styles.signInCard]}>
         {!supabase ? <>
           <Heading level={2}>Album setup required</Heading>
-          <SignInDetail>Connect the app to its Supabase project to enable sign-in.</SignInDetail>
+          <Text style={styles.detail}>Connect the app to its Supabase project to enable sign-in.</Text>
         </> : session === undefined
           ? <ActivityIndicator accessibilityLabel="Loading album" color="#285342" />
           : <SignIn client={supabase} />}
@@ -94,29 +85,27 @@ export function App() {
 
 function SignInPage({ children }: PropsWithChildren) {
   const { width } = useWindowDimensions();
-  const [fontLoaded] = useFonts(signInFonts);
   const [paused, setPaused] = useState(false);
   const motionAllowed = useWallpaperMotion();
   const titleSize = Math.min(108, Math.max(56, width * 0.17));
 
-  return <SignInTypography.Provider value={fontLoaded}><View style={styles.signInPage}>
+  return <View style={styles.signInPage}>
     <StatusBar barStyle="light-content" />
     <SignInWallpaper playing={motionAllowed && !paused} />
     <ScrollView contentContainerStyle={[styles.page, styles.signInContent]} keyboardShouldPersistTaps="handled">
-      <Text accessibilityRole="header" aria-level={1} style={[styles.signInBrand, fontLoaded && styles.displayFont, {
+      <Text accessibilityRole="header" aria-level={1} style={[styles.signInBrand, {
         fontSize: titleSize, lineHeight: titleSize * 1.15, letterSpacing: titleSize * 0.075,
       }]}>FOR HER</Text>
       {children}
       {motionAllowed && <Pressable accessibilityRole="button" onPress={() => setPaused(!paused)}
         style={styles.wallpaperControl}>
-        <Text style={[styles.wallpaperControlText, fontLoaded && styles.strongFont]}>{paused ? 'Play wallpaper' : 'Pause wallpaper'}</Text>
+        <Text style={styles.wallpaperControlText}>{paused ? 'Play wallpaper' : 'Pause wallpaper'}</Text>
       </Pressable>}
     </ScrollView>
-  </View></SignInTypography.Provider>;
+  </View>;
 }
 
 function SignIn({ client }: { client: SupabaseClient }) {
-  const bodoni = useContext(SignInTypography);
   const [email, setEmail] = useState('');
   const [sentTo, setSentTo] = useState('');
   const [setup, setSetup] = useState(false);
@@ -184,28 +173,28 @@ function SignIn({ client }: { client: SupabaseClient }) {
   return (
     <>
       <Heading level={2}>{setup ? 'Set up your sign-in' : sentTo ? 'Check your email' : 'Open your album'}</Heading>
-      <SignInDetail>
+      <Text style={styles.detail}>
         {setup ? 'Use the setup code in the email that invited you to For Her.'
           : sentTo ? 'If that address is set up for the album, you’ll receive a one-time code.'
           : 'Enter your email to get a one-time sign-in code.'}
-      </SignInDetail>
+      </Text>
       {!sentTo && (
         <>
-          <Text style={[styles.label, bodoni && styles.strongFont]}>Email address</Text>
+          <Text style={styles.label}>Email address</Text>
           <TextInput
             accessibilityLabel="Email address" autoCapitalize="none" autoComplete="email"
             autoCorrect={false} editable={!busy} keyboardType="email-address" onChangeText={setEmail}
-            style={[styles.input, bodoni && styles.readingFont]} value={email}
+            style={styles.input} value={email}
           />
         </>
       )}
       {(setup || sentTo) ? (
         <>
-          <Text style={[styles.label, bodoni && styles.strongFont]}>{setup ? 'Email setup code' : 'Email sign-in code'}</Text>
+          <Text style={styles.label}>{setup ? 'Email setup code' : 'Email sign-in code'}</Text>
           <TextInput
             accessibilityLabel={setup ? 'Email setup code' : 'Email sign-in code'}
             autoComplete="one-time-code" editable={!busy} keyboardType="number-pad" maxLength={8}
-            onChangeText={setCode} style={[styles.input, bodoni && styles.readingFont]} value={code}
+            onChangeText={setCode} style={styles.input} value={code}
             onSubmitEditing={() => { if (!busy) void verifyCode(); }}
           />
           <Action disabled={busy} onPress={verifyCode}>{busy ? 'Please wait…' : 'Verify and sign in'}</Action>
@@ -342,13 +331,7 @@ function Pairing({ client }: { client: SupabaseClient }) {
 }
 
 function Heading({ children, level = 1 }: PropsWithChildren<{ level?: 1 | 2 }>) {
-  const bodoni = useContext(SignInTypography);
-  return <Text accessibilityRole="header" aria-level={level} style={[styles.title, bodoni && styles.strongFont]}>{children}</Text>;
-}
-
-function SignInDetail({ children }: PropsWithChildren) {
-  const bodoni = useContext(SignInTypography);
-  return <Text style={[styles.detail, bodoni && styles.readingFont]}>{children}</Text>;
+  return <Text accessibilityRole="header" aria-level={level} style={styles.title}>{children}</Text>;
 }
 
 function Action({ children, disabled, onPress, secondary }: PropsWithChildren<{
@@ -356,19 +339,17 @@ function Action({ children, disabled, onPress, secondary }: PropsWithChildren<{
   onPress: () => void | Promise<void>;
   secondary?: boolean;
 }>) {
-  const bodoni = useContext(SignInTypography);
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [styles.button, secondary && styles.secondary, (pressed || disabled) && styles.dim]}>
-      <Text style={[styles.buttonText, secondary && styles.secondaryText, bodoni && styles.strongFont]}>{children}</Text>
+      <Text style={[styles.buttonText, secondary && styles.secondaryText]}>{children}</Text>
     </Pressable>
   );
 }
 
 function ErrorMessage({ message }: { message: string }) {
-  const bodoni = useContext(SignInTypography);
-  return message ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={[styles.error, bodoni && styles.readingFont]}>{message}</Text> : null;
+  return message ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{message}</Text> : null;
 }
 
 const styles = StyleSheet.create({
@@ -379,13 +360,9 @@ const styles = StyleSheet.create({
   signInPage: { flex: 1, backgroundColor: '#233d31' },
   signInContent: { backgroundColor: 'transparent', paddingVertical: 42, gap: 22 },
   signInBrand: {
-    fontFamily: Platform.select({ web: 'Georgia, serif', ios: 'Georgia', default: 'serif' }),
     color: '#fffaf0', textAlign: 'center', textShadowColor: '#10291f',
     textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 13,
   },
-  displayFont: { fontFamily: 'BodoniDisplay' },
-  readingFont: { fontFamily: 'BodoniText', fontSize: 16 },
-  strongFont: { fontFamily: 'BodoniStrong', fontWeight: 'normal' },
   signInCard: { maxWidth: 430, boxShadow: '0 16px 54px rgba(11, 32, 23, 0.32)' },
   wallpaperControl: {
     minHeight: 44, justifyContent: 'center', borderRadius: 22, paddingHorizontal: 16,
