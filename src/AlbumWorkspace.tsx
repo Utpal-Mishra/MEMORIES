@@ -12,6 +12,8 @@ import type { GalleryPhoto } from './PhotoGallery';
 import { choosePhoto, removePhoto, uploadPhoto } from './photos';
 import type { ChosenPhoto } from './photos';
 import { WeatherScene } from './WeatherScene';
+import { DateIdeas } from './DateIdeas';
+import type { DateIdea } from './dublinIdeas';
 
 function formatDate(date: string) {
   return new Date(date + 'T12:00:00Z').toLocaleDateString('en-IE', {
@@ -25,11 +27,11 @@ export function AlbumWorkspace({ client, onSignOut }: {
 }) {
   const [data, setData] = useState<AlbumData>();
   const [selectedId, setSelectedId] = useState<string>();
-  const [tab, setTab] = useState<'places' | 'memories' | 'gallery'>('places');
+  const [tab, setTab] = useState<'places' | 'memories' | 'gallery' | 'ideas'>('places');
   const [openVisitId, setOpenVisitId] = useState<string>();
   const [attachment, setAttachment] = useState<{ visitId: string; photo: ChosenPhoto }>();
   const [photoBusy, setPhotoBusy] = useState(false);
-  const [form, setForm] = useState<{ place?: Place }>();
+  const [form, setForm] = useState<{ place?: Place; idea?: DateIdea }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -115,8 +117,8 @@ export function AlbumWorkspace({ client, onSignOut }: {
   const place = data?.places.find((item) => item.id === selectedId);
   const visibleVisits = data?.visits.filter((visit) => tab === 'memories' || visit.place_id === selectedId) ?? [];
 
-  if (form && data) return <VisitEditor key={form.place?.id ?? 'new'} client={client} albumId={data.albumId}
-    place={form.place} places={data.places}
+  if (form && data) return <VisitEditor key={form.place?.id ?? form.idea?.name ?? 'new'} client={client} albumId={data.albumId}
+    place={form.place} idea={form.idea} places={data.places}
     onCancel={() => { setForm(undefined); void refresh(); }}
     onSaved={async (visitId) => {
       setForm(undefined);
@@ -140,6 +142,7 @@ export function AlbumWorkspace({ client, onSignOut }: {
         <Button secondary onPress={() => setTab('places')} selected={tab === 'places'}>Places</Button>
         <Button secondary onPress={() => setTab('memories')} selected={tab === 'memories'}>Memories</Button>
         <Button secondary onPress={() => setTab('gallery')} selected={tab === 'gallery'}>Gallery</Button>
+        <Button secondary onPress={() => setTab('ideas')} selected={tab === 'ideas'}>Ideas</Button>
         <View style={{ flex: 1 }} />
         <Button secondary disabled={loading} onPress={() => refresh()}>Refresh</Button>
         <Button secondary onPress={async () => {
@@ -154,7 +157,9 @@ export function AlbumWorkspace({ client, onSignOut }: {
         <Text accessibilityRole="header" style={styles.subheading}>Our photo gallery</Text>
         <PhotoGallery client={client} photos={photoGroups.all} onOpen={openVisit} />
       </View>}
-      {data && tab !== 'gallery' && (
+      {tab === 'ideas' && <DateIdeas canSave={Boolean(data) && !loading}
+        onVisit={(idea) => { setNotice(''); setForm({ idea }); }} />}
+      {data && (tab === 'places' || tab === 'memories') && (
         <View style={[styles.columns, wide && styles.wide]}>
           {tab === 'places' && <View style={wide ? { flex: 1 } : undefined}>
             <PlaceMap places={data.places} selectedId={selectedId} onSelect={setSelectedId} />
@@ -210,23 +215,24 @@ export function AlbumWorkspace({ client, onSignOut }: {
   );
 }
 
-function VisitEditor({ client, albumId, place, places, onSaved, onCancel }: {
+function VisitEditor({ client, albumId, place, idea, places, onSaved, onCancel }: {
   client: SupabaseClient;
   albumId: string;
   place?: Place;
+  idea?: DateIdea;
   places: Place[];
   onSaved: (visitId: string) => Promise<void>;
   onCancel: () => void;
 }) {
-  const [name, setName] = useState(place?.name ?? '');
-  const [latitude, setLatitude] = useState(String(place?.latitude ?? 53.35));
-  const [longitude, setLongitude] = useState(String(place?.longitude ?? -6.26));
+  const [name, setName] = useState(place?.name ?? idea?.name ?? '');
+  const [latitude, setLatitude] = useState(String(place?.latitude ?? idea?.latitude ?? 53.35));
+  const [longitude, setLongitude] = useState(String(place?.longitude ?? idea?.longitude ?? -6.26));
   const [date, setDate] = useState(today);
   const [brief, setBrief] = useState('');
   const [photo, setPhoto] = useState<ChosenPhoto>();
   const [choosing, setChoosing] = useState(false);
   const [savedVisitId, setSavedVisitId] = useState<string>();
-  const [category, setCategory] = useState('days_out');
+  const [category, setCategory] = useState<string>(idea?.category ?? 'days_out');
   const [requestId] = useState(randomUUID);
   const [attempt, setAttempt] = useState<VisitInput>();
   const [busy, setBusy] = useState(false);
@@ -281,7 +287,8 @@ function VisitEditor({ client, albumId, place, places, onSaved, onCancel }: {
   return (
     <View style={styles.editor}>
       <Text accessibilityRole="header" style={styles.heading}>{place ? 'Another day here' : 'Add a memory'}</Text>
-      <Text style={styles.muted}>{place ? place.name : 'Name the place and tap the map to position its pin. You can also enter coordinates.'}</Text>
+      <Text style={styles.muted}>{place ? place.name : idea ? 'Check the suggested pin and date, then add a note or photo.'
+        : 'Name the place and tap the map to position its pin. You can also enter coordinates.'}</Text>
       {!place && <PlaceMap places={places} onSelect={() => {}} draft={{
         latitude: Number(latitude), longitude: Number(longitude),
       }} onPick={locked ? undefined : (lat, lon) => { setLatitude(String(lat)); setLongitude(String(lon)); }} />}

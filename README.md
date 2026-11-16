@@ -2,7 +2,7 @@
 
 For Her is a private memory album for one couple. It opens on a map of Ireland, where saved places lead back to the visits, photos and short notes that make each place memorable.
 
-**Status** · Phase 3 adds private visit photos, a Polaroid gallery and weather-responsive scenery to the Ireland map and visit history. Complete the hosted two-device pairing and media checks before private use.
+**Status** · The web app includes Dublin date ideas alongside the Ireland map, private visit photos and Polaroid gallery. Hosted two-device pairing, media and recovery checks are still needed for the private release.
 
 ## Product scope
 
@@ -59,7 +59,7 @@ Phase 1 uses Expo and React Native for the client and Supabase Auth, Postgres an
 | 1. Foundation | App shell, backend, email verification and partner pairing | Code and database checks are complete. Verify email delivery and pairing on a configured Supabase project before first use. |
 | 2. Ireland and visits | Ireland home map, place list and visit editor | Implemented. Add dated notes, reopen place history from a pin, and record repeat visits under the same place. Database access and retry checks are covered by the test suite. |
 | 3. Media and design | Private uploads, Polaroid gallery, photo-first navigation and weather scenes | Implemented. Verify private uploads, removal and gallery navigation on the hosted paired album. |
-| 4. Ideas and private release | Dublin date ideas, **We went here** and testing on both partners’ devices | An idea can become a visit. Pairing, account recovery, access revocation, media deletion and backup recovery have been tested before real memories are added. |
+| 4. Ideas and private release | Dublin date ideas, **We went here** and testing on both partners’ devices | Dublin ideas and conversion to a saved visit are implemented. Hosted pairing, recovery, revocation, media deletion and backup recovery checks are pending. |
 
 The first release covers the shared album, Ireland home map, visits, gallery, weather and a small set of sourced Dublin date ideas. Wider suggestion coverage and offline maps can follow after the private release.
 
@@ -124,3 +124,9 @@ For another hosting path, update `expo.experiments.baseUrl` in app.json before e
 Apply [the visit photos migration](supabase/migrations/20261112010000_visit_photos.sql) after Phase 2. In the paired album, use **Choose photo** when saving a visit or **Visit photos → Add photo** on an existing visit. **Gallery** opens photos from across the album. Select a photo to return to its place and visit. A failed upload can be retried from the editor or attached later from the saved visit.
 
 The private bucket accepts JPEG, PNG and WebP images up to 10 MB. Only the verified pair can upload, read or remove objects attached to existing album visits. The client requests five-minute signed URLs and uses the Storage API for deletion. Signed URLs already issued remain usable until expiry. The weather scene uses [Open-Meteo](https://open-meteo.com/) with a fixed Dublin reference and falls back to a neutral Ireland scene without interrupting the album.
+
+## Phase 4 date ideas
+
+Open **Ideas** in the paired album to browse a small, bundled list of Dublin outings. Each links to its visitor information. **We went here** fills in the place, suggested pin and category in the existing visit editor. Review the location and date, add your own note or photo, and save to open the visit on the Ireland map.
+
+The list is bundled and does not use album records or send them to the source sites. No backend migration is needed for the Ideas tab. Account recovery, access revocation, media deletion and backup recovery checks remain part of the private release.
