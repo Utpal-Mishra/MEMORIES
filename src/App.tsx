@@ -3,11 +3,12 @@ import type { PropsWithChildren } from 'react';
 import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import {
-  ActivityIndicator, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
 
 import { supabase, trackNativeSession } from './supabase';
 import { AlbumWorkspace } from './AlbumWorkspace';
+import { SignInWallpaper, useWallpaperMotion } from './SignInWallpaper';
 
 type PairingState =
   | 'owner_ready' | 'owner_waiting' | 'partner_waiting' | 'partner_ready'
@@ -41,6 +42,33 @@ const pairingCopy: Record<PairingState, { title: string; detail: string }> = {
 };
 
 export function App() {
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!supabase) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
+    const stopTracking = trackNativeSession();
+    return () => {
+      subscription.unsubscribe();
+      stopTracking?.();
+    };
+  }, []);
+
+  if (!session || !supabase) {
+    return <SignInPage>
+      <View style={[styles.card, styles.signInCard]}>
+        {!supabase ? <>
+          <Heading level={2}>Album setup required</Heading>
+          <Text style={styles.detail}>Connect the app to its Supabase project to enable sign-in.</Text>
+        </> : session === undefined
+          ? <ActivityIndicator accessibilityLabel="Loading album" color="#285342" />
+          : <SignIn client={supabase} />}
+      </View>
+    </SignInPage>;
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
       <StatusBar barStyle="dark-content" />
@@ -49,38 +77,32 @@ export function App() {
           <Text style={styles.brandName}>For Her</Text>
           <View style={styles.brandMark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
         </View>
-        <View>
-          {supabase ? <Account client={supabase} /> : (
-            <>
-              <Heading>Album setup required</Heading>
-              <Text style={styles.detail}>Connect the app to its Supabase project to enable sign-in.</Text>
-            </>
-          )}
-        </View>
+        <Pairing key={session.user.id} client={supabase} />
       </View>
     </ScrollView>
   );
 }
 
-function Account({ client }: { client: SupabaseClient }) {
-  const [session, setSession] = useState<Session | null | undefined>(undefined);
+function SignInPage({ children }: PropsWithChildren) {
+  const { width } = useWindowDimensions();
+  const [paused, setPaused] = useState(false);
+  const motionAllowed = useWallpaperMotion();
+  const titleSize = Math.min(108, Math.max(56, width * 0.17));
 
-  useEffect(() => {
-    const { data: { subscription } } = client.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-    });
-    const stopTracking = trackNativeSession();
-    return () => {
-      subscription.unsubscribe();
-      stopTracking?.();
-    };
-  }, [client]);
-
-  if (session === undefined) return <ActivityIndicator accessibilityLabel="Loading album" color="#285342" />;
-
-  return session
-    ? <Pairing key={session.user.id} client={client} />
-    : <View style={styles.card}><SignIn client={client} /></View>;
+  return <View style={styles.signInPage}>
+    <StatusBar barStyle="light-content" />
+    <SignInWallpaper playing={motionAllowed && !paused} />
+    <ScrollView contentContainerStyle={[styles.page, styles.signInContent]} keyboardShouldPersistTaps="handled">
+      <Text accessibilityRole="header" aria-level={1} style={[styles.signInBrand, {
+        fontSize: titleSize, lineHeight: titleSize * 1.15, letterSpacing: titleSize * 0.075,
+      }]}>FOR HER</Text>
+      {children}
+      {motionAllowed && <Pressable accessibilityRole="button" onPress={() => setPaused(!paused)}
+        style={styles.wallpaperControl}>
+        <Text style={styles.wallpaperControlText}>{paused ? 'Play wallpaper' : 'Pause wallpaper'}</Text>
+      </Pressable>}
+    </ScrollView>
+  </View>;
 }
 
 function SignIn({ client }: { client: SupabaseClient }) {
@@ -150,7 +172,7 @@ function SignIn({ client }: { client: SupabaseClient }) {
 
   return (
     <>
-      <Heading>{setup ? 'Set up your sign-in' : sentTo ? 'Check your email' : 'Open your album'}</Heading>
+      <Heading level={2}>{setup ? 'Set up your sign-in' : sentTo ? 'Check your email' : 'Open your album'}</Heading>
       <Text style={styles.detail}>
         {setup ? 'Use the setup code in the email that invited you to For Her.'
           : sentTo ? 'If that address is set up for the album, you’ll receive a one-time code.'
@@ -308,8 +330,8 @@ function Pairing({ client }: { client: SupabaseClient }) {
   );
 }
 
-function Heading({ children }: PropsWithChildren) {
-  return <Text accessibilityRole="header" style={styles.title}>{children}</Text>;
+function Heading({ children, level = 1 }: PropsWithChildren<{ level?: 1 | 2 }>) {
+  return <Text accessibilityRole="header" aria-level={level} style={styles.title}>{children}</Text>;
 }
 
 function Action({ children, disabled, onPress, secondary }: PropsWithChildren<{
@@ -335,6 +357,19 @@ const styles = StyleSheet.create({
     flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#e9f0e7',
     paddingHorizontal: 20, paddingVertical: 52,
   },
+  signInPage: { flex: 1, backgroundColor: '#233d31' },
+  signInContent: { backgroundColor: 'transparent', paddingVertical: 42, gap: 22 },
+  signInBrand: {
+    fontFamily: Platform.select({ web: 'Georgia, serif', ios: 'Georgia', default: 'serif' }),
+    color: '#fffaf0', textAlign: 'center', textShadowColor: '#10291f',
+    textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 13,
+  },
+  signInCard: { maxWidth: 430, boxShadow: '0 16px 54px rgba(11, 32, 23, 0.32)' },
+  wallpaperControl: {
+    minHeight: 44, justifyContent: 'center', borderRadius: 22, paddingHorizontal: 16,
+    backgroundColor: 'rgba(15, 36, 27, 0.76)', borderColor: 'rgba(255, 250, 240, 0.42)', borderWidth: 1,
+  },
+  wallpaperControlText: { color: '#fffaf0', fontSize: 13, fontWeight: '600' },
   frame: { width: '100%', maxWidth: 1100, gap: 18 },
   brand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
   brandName: { fontSize: 23, fontWeight: '700', letterSpacing: -0.8, color: '#223b2e' },

@@ -25,7 +25,7 @@ export function weatherScene(code: number, isDay: number): Weather {
   return { scene: night ? 'night' : 'clear', label: night ? 'Clear night' : 'Clear skies' };
 }
 
-export function WeatherScene() {
+export function useAlbumWeather() {
   const [weather, setWeather] = useState(fallback);
   useEffect(() => {
     const abort = new AbortController();
@@ -42,6 +42,11 @@ export function WeatherScene() {
     return () => { clearTimeout(timeout); abort.abort(); };
   }, []);
 
+  return weather;
+}
+
+export function WeatherScene() {
+  const weather = useAlbumWeather();
   const [background, light, lake] = sky[weather.scene];
   const night = weather.scene === 'night' || weather.scene === 'nightRain';
   const raining = weather.scene === 'rain' || weather.scene === 'nightRain';
