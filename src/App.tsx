@@ -105,7 +105,7 @@ function SignInPage({ children }: PropsWithChildren) {
     <ScrollView contentContainerStyle={[styles.page, styles.signInContent]} keyboardShouldPersistTaps="handled">
       <Text accessibilityRole="header" aria-level={1} style={[styles.signInBrand, fontLoaded && styles.displayFont, {
         fontSize: titleSize, lineHeight: titleSize * 1.15, letterSpacing: titleSize * 0.075,
-      }]}>For Her</Text>
+      }]}>FOR HER</Text>
       {children}
       {motionAllowed && <Pressable accessibilityRole="button" onPress={() => setPaused(!paused)}
         style={styles.wallpaperControl}>
